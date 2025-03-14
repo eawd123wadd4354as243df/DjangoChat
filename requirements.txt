@@ -4,5 +4,4 @@ Django==5.1.7
 sqlparse==0.5.3
 tzdata==2025.1
 daphne==4.1.2
-channels_postgres==1.0.5
 python-dotenv==1.0.1
