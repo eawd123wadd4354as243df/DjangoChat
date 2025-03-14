@@ -4,17 +4,17 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.contrib.auth.models import User
 
-from chat.models import Member
+from chat.db import try_get_member_from_user_room
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
     user: User
-    room_name: str
+    room_id: int
 
     async def connect(self):
         print("Connecting")
 
-        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
+        self.room_id = self.scope["url_route"]["kwargs"]["room_id"]
         self.user = self.scope['user']
 
         if not self.user.is_authenticated:
@@ -23,7 +23,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         print('user: ', self.user)
 
-        member = await try_get_member_from_user_room(self.user, self.room_name)
+        member = await atry_get_member_from_user_room(self.user, self.room_id)
 
         if not member:
             print('member not found')
@@ -64,20 +64,5 @@ def chat_message(self, event):
 
 
 @database_sync_to_async
-def get_user(user_id: int):
-    user = User.objects.get(pk=user_id)
-
-    return user
-
-
-@database_sync_to_async
-def try_get_member_from_user_room(user: User, room_name: str):
-    try:
-        return Member.objects.get(user=user, room__name=room_name)
-    except Member.DoesNotExist:
-        return None
-
-
-@database_sync_to_async
-def get_name():
-    return User.objects.all()[0].name
+def atry_get_member_from_user_room(user: User, room_id: id):
+    return try_get_member_from_user_room(user, room_id)
