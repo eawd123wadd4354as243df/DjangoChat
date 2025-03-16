@@ -10,19 +10,44 @@
     <input id="chat-message-submit" type="button" value="Send">
     {{ room_id|json_script:"room-id" }}
     <script>
-        const roomId = JSON.parse(document.getElementById('room-id').textContent);
+        let roomId = null;
+
+        function switchChat(chat_id) {
+            chatSocket.send(JSON.stringify({
+                'type': `chat.switch`,
+                'payload': chat_id
+            }));
+        }
+
 
         const chatSocket = new WebSocket(
             'ws://'
             + window.location.host
             + '/ws/chat/'
-            + roomId
-            + '/'
         );
+
+        chatSocket.onopen = function (e) {
+            switchChat(JSON.parse(document.getElementById('room-id').textContent))
+        }
 
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
-            document.querySelector('#chat-log').value += (data.message + '\n');
+            const payload = data.payload
+
+            switch (data.type) {
+                case 'chat.message': {
+                    document.querySelector('#chat-log').value += (payload + '\n');
+                    break
+                }
+                case 'chat.switch': {
+                    roomId = payload
+                    break
+                }
+                default: {
+                    console.error("Received invalid websocket message: ", data)
+                }
+            }
+
         };
 
         chatSocket.onclose = function(e) {
@@ -34,13 +59,17 @@
             if (e.key === 'Enter') {  // enter, return
                 document.querySelector('#chat-message-submit').click();
             }
-        };
+        }
+
+
+
 
         document.querySelector('#chat-message-submit').onclick = function(e) {
             const messageInputDom = document.querySelector('#chat-message-input');
             const message = messageInputDom.value;
             chatSocket.send(JSON.stringify({
-                'message': message
+                'type': `message.send`,
+                'payload': message
             }));
             messageInputDom.value = '';
         };
