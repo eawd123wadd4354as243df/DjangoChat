@@ -16,7 +16,7 @@ def index(request):
         "room_name": "Select a Room",
     }
 
-    return render(request, "main.html", context)
+    return render(request, "chat/main.html", context)
 
 
 @login_required
@@ -36,4 +36,4 @@ def room(request, room_id):
         "rooms": user_rooms,
     }
 
-    return render(request, "main.html", context)
+    return render(request, "chat/main.html", context)
