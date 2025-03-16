@@ -1,0 +1,17 @@
+{% extends "base.html" %} {% block title %}Chat{% endblock %} {% block content %}
+<div class="container-fluid vh-100">
+  <div class="row h-100">
+    <div class="col-2 border-end bg-white overflow-auto">
+      {% include "chat/server_list.html" %}
+    </div>
+
+    <div class="col-8 border-end bg-light d-flex flex-column overflow-hidden">
+      {% include "chat/chat_area.html" %}
+    </div>
+
+    <div class="col-2 bg-white overflow-auto">
+      {% include "chat/members_list.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

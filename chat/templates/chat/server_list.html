@@ -1,0 +1,15 @@
+<div class="p-3">
+  <h5>Servers & DMs</h5>
+  <ul class="list-group">
+    {% for room in rooms %}
+    <a
+      href="{% url 'room' room.id %}"
+      class="list-group-item list-group-item-action"
+    >
+      {{ room.name }}
+    </a>
+    {% empty %}
+    <li class="list-group-item text-muted">No servers or DMs yet.</li>
+    {% endfor %}
+  </ul>
+</div>
