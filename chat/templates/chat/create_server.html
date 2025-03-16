@@ -1,0 +1,19 @@
+<div class="container">
+    <form method="post">
+        {% csrf_token %}
+{#        TODO get custom form templates to work#}
+{#        {{ create_server_form }}#}
+
+        <div class="form-group">
+            <label for="id_server_name">Create new Server:</label>
+            <input type="text" class="col-8 form-control" id="id_server_name" name="server_name"
+                   placeholder="Server name" required>
+        </div>
+
+        <div class="d-flex flex-row-reverse">
+            <input type="submit" class="btn btn-secondary" value="Create">
+        </div>
+    </form>
+
+
+</div>

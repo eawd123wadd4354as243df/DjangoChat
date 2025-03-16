@@ -1,17 +1,131 @@
-{% extends "base.html" %} {% block title %}Chat{% endblock %} {% block content %}
-<div class="container-fluid vh-100">
-  <div class="row h-100">
-    <div class="col-2 border-end bg-white overflow-auto">
-      {% include "chat/server_list.html" %}
+{% extends "base.html" %}
+
+{% block title %}Chat{% endblock %}
+
+{% block content %}
+    <div class="container-fluid vh-100">
+        <div class="row h-100">
+            <div class="col-2 border-end bg-white overflow-auto">
+                {% include "chat/server_list.html" %}
+                {% include "chat/create_server.html" %}
+            </div>
+
+            <div class="col-8 border-end bg-light d-flex flex-column overflow-hidden">
+                {% include "chat/chat_area.html" %}
+            </div>
+
+            <div class="col-2 bg-white overflow-auto">
+                {% include "chat/members_list.html" %}
+                {% include "chat/add_member.html" %}
+            </div>
+        </div>
     </div>
 
-    <div class="col-8 border-end bg-light d-flex flex-column overflow-hidden">
-      {% include "chat/chat_area.html" %}
-    </div>
+    {{ room_id|json_script:"room-id" }}
 
-    <div class="col-2 bg-white overflow-auto">
-      {% include "chat/members_list.html" %}
-    </div>
-  </div>
-</div>
+    <script>
+        let roomId = null;
+
+        function switchChat(chat_id) {
+            chatSocket.send(JSON.stringify({
+                'type': `chat.switch`,
+                'payload': {
+                    'chat_id': chat_id
+                }
+            }));
+        }
+
+        function sendMessage(content) {
+            chatSocket.send(JSON.stringify({
+                'type': 'message.send',
+                'payload': {
+                    'content': content
+                }
+            }))
+        }
+
+
+        const chatSocket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/chat/'
+        );
+
+        chatSocket.onopen = function (e) {
+            const roomId = JSON.parse(document.getElementById('room-id').textContent)
+            switchChat(roomId)
+        }
+
+        chatSocket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            const payload = data.payload
+
+            console.log(payload)
+
+            switch (data.type) {
+                case 'chat.message': {
+          {#          <div class="fw-bold">#}
+                    {#  {{ message.member.user.username }}: #}
+                    {#</div>#}
+                    {#<div>#}
+                    {#  {{ message.content }}#}
+                    {#</div>#}
+                    {#          #}
+
+                    if (!payload.chat_id === roomId) {
+                        break
+                    }
+
+                    const log = document.querySelector('#chat-log')
+
+
+                    const wrapping_div = document.createElement("div")
+
+                    const userNameWrapper = document.createElement('div')
+                    const userName = document.createTextNode(payload.username + ':')
+                    userNameWrapper.classList.add("fw-bold")
+                    userNameWrapper.appendChild(userName)
+
+                    const contentWrapper = document.createElement('div')
+                    const content = document.createTextNode(payload.content)
+                    contentWrapper.appendChild(content)
+
+                    wrapping_div.appendChild(userNameWrapper)
+                    wrapping_div.appendChild(contentWrapper)
+                    log.appendChild(wrapping_div)
+
+                    break
+                }
+                case 'chat.switch': {
+                    roomId = payload
+                    break
+                }
+                default: {
+                    console.error("Received invalid websocket message: ", data)
+                }
+            }
+
+        };
+
+        chatSocket.onclose = function (e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        document.querySelector('#chat-message-input').focus();
+        document.querySelector('#chat-message-input').onkeyup = function (e) {
+            if (e.key === 'Enter') {
+                document.querySelector('#chat-message-submit').click();
+            }
+        };
+
+        document.querySelector('#chat-message-submit').onclick = function (e) {
+            const messageInputDom = document.querySelector('#chat-message-input');
+            const message = messageInputDom.value;
+            sendMessage(message)
+
+            messageInputDom.value = '';
+        };
+
+    </script>
+
 {% endblock %}

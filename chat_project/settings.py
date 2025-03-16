@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
+from django.forms.renderers import TemplatesSetting
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -50,11 +52,15 @@ LOGOUT_REDIRECT_URL = "/login/"
 LOGIN_URL = "/login"
 LOGOUT_URL = "/logout"
 
+
+
 INSTALLED_APPS = [
     'daphne',
     'channels',
     'users.apps.UsersConfig',
     'chat.apps.ChatConfig',
+
+    'django.forms',
 
     'django.contrib.admin',
     'django.contrib.auth',

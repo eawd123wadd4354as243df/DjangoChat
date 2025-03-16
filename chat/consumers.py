@@ -9,8 +9,8 @@ from chat.payloads import FrontendChatSwitchPayload, FrontendMessagePayload, Fro
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
-    user: User
-    room_id: int | None
+    user: User = None
+    room_id: int | None = None
 
     async def connect(self):
         self.user = self.scope['user']
@@ -44,11 +44,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def send_json(self, content: BackendEvent, close=False):
         await super().send_json(content, close)
 
-
     # Receive message from WebSocket
     async def receive_json(self, content, **kwargs):
         payload = content["payload"]
-
 
         # TODO except for chat.switch these should really be api calls
         match content["type"]:
@@ -63,15 +61,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 raise Exception("Unknown event type")
 
     async def switch_chat(self, payload: FrontendChatSwitchPayload):
-        room_id = payload.chat_id
+        room_id = payload["chat_id"]
 
         member = await atry_get_member_from_user_room(self.user, room_id)
 
         if not member:
             print('member not found')
             return
-
-        print('member: ', member)
 
         if self.room_id is not None:
             await self.channel_layer.group_discard(
@@ -85,45 +81,39 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         )
         self.room_id = room_id
 
-        await self.channel_layer.group_send(
-            get_room_group_name(self.room_id),
-            {
-                "type": "chat.switch",
-                "payload": self.room_id
-            }
-        )
-
     async def receive_message(self, payload: FrontendMessagePayload):
-        member = await atry_get_member_from_user_room(self.user, payload.chat_id)
+        message = payload['content']
+        if message.isspace():
+            return
+
+        member = await atry_get_member_from_user_room(self.user, self.room_id)
 
         if member is None:
             raise Exception("User not in room")
 
 
-        member = await try_get_member_from_user_room(self.user, self.room_id)
-        if not member:
-            raise Exception("User not in room")
-
-        message = payload.content
-
-        await asave_message(member,  message)
+        db_message = await asave_message(member, message)
         await self.channel_layer.group_send(
-            get_room_group_name(payload.chat_id),
+            get_room_group_name(self.room_id),
             {
                 "type": "chat.message",
-                "payload": message
+                "payload": {
+                    'chat_id': self.room_id,
+                    'content': message,
+                    'username': self.user.username,
+                }
             }
         )
 
     async def add_member(self, payload: FrontendAddMemberPayload):
-        member = await atry_get_member_from_user_room(self.user, payload.chat_id)
+        member = await atry_get_member_from_user_room(self.user, payload["chat_id"])
 
         if member is None:
             raise Exception("User not in room")
 
-        new_member: Member = await aadd_user_to_room(payload.chat_id,
-                                             payload.user_id,
-                                             member)
+        new_member: Member = await aadd_user_to_room(payload["chat_id"],
+                                                     payload["user_id"],
+                                                     member)
 
         await self.channel_layer.group_send(
             get_user_group_name(new_member.user_id),
@@ -132,7 +122,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "payload": payload
             }
         )
-
 
     # Receive message from room group
     async def chat_message(self, event: GroupEvent[GroupChatSendPayload]):
@@ -150,9 +139,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             'type': 'chat.add',
             'payload': payload
         })
-
-
-
 
 
 def get_room_group_name(room_id: int) -> str:
@@ -173,6 +159,7 @@ def aadd_user_to_room(room_id: int,
                       user_id: int,
                       adding_member: Member) -> Member:
     return add_user_to_room(room_id, user_id, adding_member)
+
 
 @database_sync_to_async
 def asave_message(member, content):

@@ -1,12 +1,12 @@
 from typing import TypeVar, TypedDict
 
 
-class FrontendPayload:
+class FrontendPayload(TypedDict):
     pass
 
 FrontendPayloadType = TypeVar('FrontendPayloadType', bound=FrontendPayload)
 
-class FrontendEvent[FrontendPayloadType]:
+class FrontendEvent[FrontendPayloadType](TypedDict):
     type: str
     payload: FrontendPayloadType
 
@@ -14,7 +14,6 @@ class FrontendChatSwitchPayload(FrontendPayload):
     chat_id: int
 
 class FrontendMessagePayload(FrontendPayload):
-    chat_id: int
     content: str
 
 class FrontendAddMemberPayload(FrontendPayload):
@@ -50,6 +49,7 @@ class BackendEvent[BackendPayloadType](TypedDict):
 
 class BackendChatSendPayload(BackendPayload):
     chat_id: int
+    username: str
     content: str
 
 class BackendChatAddPayload(BackendPayload):

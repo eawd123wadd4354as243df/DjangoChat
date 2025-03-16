@@ -14,6 +14,11 @@ class Member(models.Model):
 
     date_joined = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['room', 'user'], name='unique_member')
+        ]
+
 
 class Message(models.Model):
     member = models.ForeignKey(
