@@ -1,22 +1,39 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseNotFound
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 
 from chat.db import try_get_member_from_user_room
+from chat.models import Member, Room
 
-
-# Create your views here.
 
 @login_required
 def index(request):
-    return render(request, "chat/index.html", {'user': request.user})
+    user_rooms = Room.objects.filter(members=request.user)
+
+    context = {
+        "rooms": user_rooms,
+        "members": [],
+        "room_name": "Select a Room",
+    }
+
+    return render(request, "main.html", context)
+
 
 @login_required
 def room(request, room_id):
-    member = try_get_member_from_user_room(request.user, room_id)
+    room = get_object_or_404(Room, pk=room_id)
 
-    if member is None:
-        return HttpResponseNotFound('Could not find room.')
+    if not room.members.filter(pk=request.user.pk).exists():
+        return HttpResponseNotFound("Could not find room.")
 
-    return render(request, "chat/room.html", {"room_id": room_id})
+    members = Member.objects.filter(room=room).select_related("user")
+    user_rooms = Room.objects.filter(members=request.user)
 
+    context = {
+        "room_id": room.id,
+        "room_name": room.name,
+        "members": members,
+        "rooms": user_rooms,
+    }
+
+    return render(request, "main.html", context)

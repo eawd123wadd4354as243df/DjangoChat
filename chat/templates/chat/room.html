@@ -5,74 +5,73 @@
     <title>Chat Room</title>
 </head>
 <body>
-    <textarea id="chat-log" cols="100" rows="20"></textarea><br>
-    <input id="chat-message-input" type="text" size="100"><br>
-    <input id="chat-message-submit" type="button" value="Send">
-    {{ room_id|json_script:"room-id" }}
-    <script>
-        let roomId = null;
+<textarea id="chat-log" cols="100" rows="20"></textarea><br/>
+<input id="chat-message-input" type="text" size="100"/><br/>
+<input id="chat-message-submit" type="button" value="Send"/>
+{{ room_id|json_script:"room-id" }}
+<script>
+    let roomId = null;
 
-        function switchChat(chat_id) {
-            chatSocket.send(JSON.stringify({
-                'type': `chat.switch`,
-                'payload': chat_id
-            }));
+    function switchChat(chat_id) {
+        chatSocket.send(JSON.stringify({
+            'type': `chat.switch`,
+            'payload': chat_id
+        }));
+    }
+
+
+    const chatSocket = new WebSocket(
+        'ws://'
+        + window.location.host
+        + '/ws/chat/'
+    );
+
+    chatSocket.onopen = function (e) {
+        switchChat(JSON.parse(document.getElementById('room-id').textContent))
+    }
+
+    chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        const payload = data.payload
+
+        switch (data.type) {
+            case 'chat.message': {
+                document.querySelector('#chat-log').value += (payload + '\n');
+                break
+            }
+            case 'chat.switch': {
+                roomId = payload
+                break
+            }
+            default: {
+                console.error("Received invalid websocket message: ", data)
+            }
         }
 
+    };
 
-        const chatSocket = new WebSocket(
-            'ws://'
-            + window.location.host
-            + '/ws/chat/'
+    chatSocket.onclose = function (e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+
+    document.querySelector('#chat-message-input').focus();
+    document.querySelector('#chat-message-input').onkeyup = function (e) {
+        if (e.key === 'Enter') {
+            document.querySelector('#chat-message-submit').click();
+        }
+    };
+
+    document.querySelector('#chat-message-submit').onclick = function (e) {
+        const messageInputDom = document.querySelector('#chat-message-input');
+        const message = messageInputDom.value;
+        chatSocket.send(
+            JSON.stringify({
+                message: message,
+            })
         );
+        messageInputDom.value = '';
+    };
 
-        chatSocket.onopen = function (e) {
-            switchChat(JSON.parse(document.getElementById('room-id').textContent))
-        }
-
-        chatSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            const payload = data.payload
-
-            switch (data.type) {
-                case 'chat.message': {
-                    document.querySelector('#chat-log').value += (payload + '\n');
-                    break
-                }
-                case 'chat.switch': {
-                    roomId = payload
-                    break
-                }
-                default: {
-                    console.error("Received invalid websocket message: ", data)
-                }
-            }
-
-        };
-
-        chatSocket.onclose = function(e) {
-            console.error('Chat socket closed unexpectedly');
-        };
-
-        document.querySelector('#chat-message-input').focus();
-        document.querySelector('#chat-message-input').onkeyup = function(e) {
-            if (e.key === 'Enter') {  // enter, return
-                document.querySelector('#chat-message-submit').click();
-            }
-        }
-
-
-
-
-        document.querySelector('#chat-message-submit').onclick = function(e) {
-            const messageInputDom = document.querySelector('#chat-message-input');
-            const message = messageInputDom.value;
-            chatSocket.send(JSON.stringify({
-                'type': `message.send`,
-                'payload': message
-            }));
-            messageInputDom.value = '';
-        };
-    </script>
+</script>
 </body>
 </html>

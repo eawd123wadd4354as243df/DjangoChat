@@ -3,7 +3,7 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth.models import User
 
 from chat.db import try_get_member_from_user_room, add_user_to_room
-from chat.models import Member
+from chat.models import Member, Message
 from chat.payloads import FrontendChatSwitchPayload, FrontendMessagePayload, FrontendAddMemberPayload, GroupEvent, \
     GroupChatAddPayload, GroupChatSendPayload, BackendEvent
 
@@ -13,12 +13,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     room_id: int | None
 
     async def connect(self):
-        print("Connecting")
-
         self.user = self.scope['user']
 
         if not self.user.is_authenticated:
-            print("user not authenticated")
             return await self.close()
 
         await self.channel_layer.group_add(
@@ -26,9 +23,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             self.channel_name
         )
 
-        print('user: ', self.user)
-
-        print("Accepting connection")
         return await self.accept()
 
     async def disconnect(self, close_code):
@@ -105,14 +99,19 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if member is None:
             raise Exception("User not in room")
 
-        # TODO store in db
 
-        # Send message to room group
+        member = await try_get_member_from_user_room(self.user, self.room_id)
+        if not member:
+            raise Exception("User not in room")
+
+        message = payload.content
+
+        await asave_message(member,  message)
         await self.channel_layer.group_send(
             get_room_group_name(payload.chat_id),
             {
                 "type": "chat.message",
-                "payload": payload.content
+                "payload": message
             }
         )
 
@@ -133,7 +132,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "payload": payload
             }
         )
-
 
 
     # Receive message from room group
@@ -175,3 +173,7 @@ def aadd_user_to_room(room_id: int,
                       user_id: int,
                       adding_member: Member) -> Member:
     return add_user_to_room(room_id, user_id, adding_member)
+
+@database_sync_to_async
+def asave_message(member, content):
+    return Message.objects.create(member=member, content=content)

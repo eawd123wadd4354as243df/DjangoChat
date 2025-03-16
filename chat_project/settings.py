@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
+
 import os
 from pathlib import Path
 
@@ -30,25 +31,24 @@ ALLOWED_HOSTS = []
 ASGI_APPLICATION = "chat_project.asgi.application"
 
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_postgres.core.PostgresChannelLayer',
-        'CONFIG': {
-            "ENGINE": f"django.db.backends.{os.getenv("DATABASE_ENGINE", "sqlite3")}",
-            "NAME": os.getenv("DATABASE_NAME", "steam_profile_finder_data.db"),
-            "USER": os.getenv("DATABASE_USERNAME", "myprojectuser"),
-            "PASSWORD": os.getenv("DATABASE_PASSWORD", "password"),
-            "HOST": os.getenv("DATABASE_HOST", "127.0.0.1"),
-            "PORT": os.getenv("DATABASE_PORT", 5432),
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [
+                (
+                    os.getenv("REDIS_HOST", "127.0.0.1"),
+                    int(os.getenv("REDIS_PORT", 6379)),
+                )
+            ],
         },
     },
 }
 
-LOGIN_URL = "/users/login"
-LOGOUT_URL = "/users/logout"
+LOGIN_REDIRECT_URL = "/chat/"
+LOGOUT_REDIRECT_URL = "/login/"
 
-LOGIN_REDIRECT_URL = '/chat'
-LOGOUT_REDIRECT_URL = '/'
-
+LOGIN_URL = "/login"
+LOGOUT_URL = "/logout"
 
 INSTALLED_APPS = [
     'daphne',
@@ -79,8 +79,7 @@ ROOT_URLCONF = 'chat_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
